@@ -29,6 +29,7 @@
       let haloGroups = new Map();
       let isFlyMode = false;
       const pitchLimit = 54 * (Math.PI / 180);
+
   function init() {
           scene = new THREE.Scene();
           gradientCanvas = document.createElement("canvas");
@@ -135,10 +136,139 @@
       euler.x = Math.max(-pitchLimit, Math.min(pitchLimit, euler.x));
       camera.quaternion.setFromEuler(euler);
   }
+  function setupMaterialPanel() {
+      const materialList = document.getElementById('materialList');
+      if (!materialList) return;
 
+      materialList.innerHTML = '';
+
+      const industrialMaterials = [
+          {
+              name: 'Stainless Steel (Brushed)',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0xaaaaaa,
+                  metalness: 0.9,
+                  roughness: 0.3,
+                  envMapIntensity: 1.0
+              })
+          },
+          {
+              name: 'Stainless Steel (Mirror Polished)',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0xdddddd,
+                  metalness: 1.0,
+                  roughness: 0.0,
+                  envMapIntensity: 1.5
+              })
+          },
+          {
+              name: 'Matte Steel (Industrial)',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0x888888,
+                  metalness: 0.8,
+                  roughness: 0.7
+              })
+          },
+          {
+              name: 'Carbon Steel (Raw)',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0x555555,
+                  metalness: 0.6,
+                  roughness: 0.8
+              })
+          },
+          {
+              name: 'FRP (Fiberglass)',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0xa0d0a0,
+                  metalness: 0.0,
+                  roughness: 0.6
+              })
+          },
+          {
+              name: 'PTFE (Teflon White)',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0xf0f0f0,
+                  metalness: 0.0,
+                  roughness: 0.4
+              })
+          },
+          {
+              name: 'Aluminum (Anodized)',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0xcccccc,
+                  metalness: 0.8,
+                  roughness: 0.2
+              })
+          },
+          {
+              name: 'Copper (Polished)',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0xb87333,
+                  metalness: 1.0,
+                  roughness: 0.1
+              })
+          },
+          {
+              name: 'Brass',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0xb5a642,
+                  metalness: 1.0,
+                  roughness: 0.3
+              })
+          },
+          {
+              name: 'Black Anodized',
+              material: new THREE.MeshStandardMaterial({
+                  color: 0x222222,
+                  metalness: 0.9,
+                  roughness: 0.4
+              })
+          }
+      ];
+
+      industrialMaterials.forEach((matOption) => {
+          const button = document.createElement('button');
+          button.className = 'material-btn';
+          button.textContent = matOption.name;
+          button.onclick = () => applyMaterialToSelected(matOption.material);
+          materialList.appendChild(button);
+      });
+      const restoreButton = document.createElement('button');
+    restoreButton.className = 'material-btn';
+    restoreButton.textContent = 'Restore Original';
+    restoreButton.style.marginTop = '16px'; // Space above it
+    restoreButton.style.background = 'rgba(255, 255, 255, 0.08)'; // Slightly different look
+    restoreButton.onclick = () => {
+        if (!selectedObject || !originalMaterials.has(selectedObject)) {
+            alert('No original material saved or no mesh selected.');
+            return;
+        }
+        selectedObject.material = originalMaterials.get(selectedObject);
+        selectedObject.material.needsUpdate = true;
+        // Optional: remove from map after restore
+        originalMaterials.delete(selectedObject);
+    };
+    materialList.appendChild(restoreButton);
+}
+  function applyMaterialToSelected(newMaterial) {
+      if (!selectedObject || !selectedObject.isMesh) {
+          alert('Please select a mesh first!');
+          return;
+      }
+
+      // Save original (safe for all these materials)
+      if (!originalMaterials.has(selectedObject)) {
+          originalMaterials.set(selectedObject, selectedObject.material);
+      }
+
+      selectedObject.material = newMaterial.clone();
+      selectedObject.material.needsUpdate = true;
+  }
   function postInit() {
       updateGradient();
       updateColorInputs();
+      setupMaterialPanel();
 
       const buttons = ['hideButton', 'showButton', 'xrayButton', 'dimensionsButton', 'flyModeButton'];
       buttons.forEach(id => {
@@ -493,7 +623,6 @@
               dropdown.style.display = 'none';
           }
       });
-
       animate();
       const canvas = renderer.domElement;
 
@@ -860,50 +989,28 @@
 
   function loadGLTFModel(url) {
       const loader = new GLTFLoader();
-
-      // Register the local KHR_animation_pointer plugin (static, no dynamic import needed)
+      // Register the animation pointer extension (handles texture animation automatically)
       loader.register((parser) => new GLTFAnimationPointerExtension(parser));
 
       loader.load(url, function (gltf) {
+          // Remove old model if exists
           if (currentModel) {
               scene.remove(currentModel);
-              // Optional: clean up old mixer/actions
               if (mixer) mixer.stopAllAction();
               actions = {};
           }
 
           currentModel = gltf.scene;
           scene.add(currentModel);
-          const defaultMaterials = new Map();
 
-          // Traverse and detect _default materials
-          currentModel.traverse((node) => {
-              if (node.isMesh && node.material) {
-                  const mats = Array.isArray(node.material) ? node.material : [node.material];
-
-                  mats.forEach((mat, index) => {
-                      if (mat.name && mat.name.endsWith('_default')) {
-                          // Store the default material for this mesh
-                          defaultMaterials.set(node, mat);
-
-                          // Find the "animated" version (same name without _default suffix)
-                          const animName = mat.name.replace('_default', '');
-                          const animMat = gltf.materials.find(m => m.name === animName);
-
-                          if (animMat) {
-                              // Optionally pre-assign animated material somewhere or just remember it
-                              node.userData.animatedMaterial = animMat;
-                          }
-                      }
-                  });
-              }
-          });
+          // Setup animation mixer and UI
           mixer = new THREE.AnimationMixer(currentModel);
 
-          // Clear previous animation options
+          // Clear previous animation dropdown options
           const dropdown = document.getElementById('animationOptionsDropdown');
           if (dropdown) dropdown.innerHTML = '';
 
+          // Populate animation dropdown
           gltf.animations.forEach((clip) => {
               const name = clip.name || 'clip' + Object.keys(actions).length;
               actions[name] = mixer.clipAction(clip);
@@ -915,46 +1022,43 @@
               dropdown.appendChild(option);
           });
 
-          // Reset to default "no animation selected" state
+          // Reset animation controls UI
           activeAction = null;
-
           const trigger = document.getElementById('animationSelectTrigger');
           if (trigger) {
-              trigger.textContent = 'Select';
+              trigger.textContent = gltf.animations.length > 0 ? 'Select' : 'No Animation';
           }
 
           const timeline = document.getElementById('animationTimeline');
-          timeline.max = 1;        // Small default
-          timeline.value = 0;
-          timeline.disabled = true; // Disable until a clip is selected
+          if (timeline) {
+              timeline.max = 1;
+              timeline.value = 0;
+              timeline.disabled = true;
+          }
 
-          // Clear any previous highlight
+          // Clear any previous selection highlight in dropdown
           document.querySelectorAll('#animationOptionsDropdown .option').forEach(opt => {
               opt.classList.remove('selected');
           });
 
-          // Optional: If model has no animations at all
-          if (gltf.animations.length === 0) {
-              if (trigger) trigger.textContent = 'No Animation';
-          }
-
+          // Setup annotations (views, hotspots, etc.)
           setupAnnotations(currentModel);
 
-          // Fit camera to new model
+          // Fit camera to the new model
           const box = new THREE.Box3().setFromObject(currentModel);
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z);
+
           camera.position.set(center.x + maxDim, center.y + maxDim, center.z + maxDim);
           controls.target.copy(center);
           controls.update();
-
-          // Optional: Revoke old object URL if you track it
-      }, undefined, function (error) {
+      },
+      undefined,
+      function (error) {
           console.error('Failed to load GLTF model:', error);
       });
   }
-
   function selectAnimation(name) {
       // Stop and reset current action
       if (activeAction) {
@@ -1342,7 +1446,6 @@
               }
           }
       }
-
       updateHaloEffects(delta);
       if (flyControls.enabled) {
           flyControls.update(delta);
