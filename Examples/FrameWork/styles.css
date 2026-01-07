@@ -363,7 +363,7 @@ input[type="file"] {
 
 /* Controls Div Start */
 #controlsDropdown {
-    position: absolute;
+    position: fixed;
     top: 15px;
     right: 10px;
     width: 55px;
