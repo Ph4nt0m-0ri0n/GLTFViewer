@@ -2,7 +2,7 @@
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   import { FlyControls } from 'three/examples/jsm/controls/FlyControls';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-  import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader';
+  import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
   import { GLTFAnimationPointerExtension } from '@needle-tools/three-animation-pointer';
   fetch('ui.html')
       .then(response => response.text())
@@ -389,7 +389,7 @@
           const file = event.target.files[0];
           if (file) {
               const url = URL.createObjectURL(file);
-              new HDRLoader().load(url, function (texture) {
+              new RGBELoader().load(url, function (texture) {
                   texture.mapping = THREE.EquirectangularReflectionMapping;
                   const pmremGenerator = new THREE.PMREMGenerator(renderer);
                   pmremGenerator.compileEquirectangularShader();
@@ -675,7 +675,7 @@
       if (file) {
           if (file.name.toLowerCase().endsWith('.hdr')) {
               const url = URL.createObjectURL(file);
-              new HDRLoader().load(url, (texture) => {
+              new RGBELoader().load(url, (texture) => {
                   texture.mapping = THREE.EquirectangularReflectionMapping;
 
                   // Use PMREM for proper environment lighting (same as your hdriInput)
