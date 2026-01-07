@@ -13,18 +13,16 @@
 <body>
     <div id="uiContainer"></div>
     <script type="importmap">
-        {
-            "imports": {
-                "three": "./node_modules/three/build/three.module.js",
-                "three/examples/jsm/controls/OrbitControls": "./node_modules/three/examples/jsm/controls/OrbitControls.js",
-                "three/examples/jsm/controls/FlyControls": "./node_modules/three/examples/jsm/controls/FlyControls.js",
-                "three/examples/jsm/loaders/GLTFLoader": "./node_modules/three/examples/jsm/loaders/GLTFLoader.js",
-                "three/examples/jsm/loaders/HDRLoader": "./node_modules/three/examples/jsm/loaders/HDRLoader.js",
-                "three/examples/jsm/exporters/GLTFExporter.js": "./libs/GLTFExporter.js",
-                "three/examples/jsm/exporters/USDZExporter.js": "./libs/USDZExporter.js",
-                "@needle-tools/three-animation-pointer": "./node_modules/@needle-tools/three-animation-pointer/dist/three-animation-pointer.js"
-            }
-        }
+    {
+"imports": {
+"three": "./libs/three/build/three.module.js",
+"three/examples/jsm/controls/OrbitControls": "./libs/three/examples/jsm/controls/OrbitControls.js",
+"three/examples/jsm/controls/FlyControls": "./libs/three/examples/jsm/controls/FlyControls.js",
+"three/examples/jsm/loaders/GLTFLoader": "./libs/three/examples/jsm/loaders/GLTFLoader.js",
+"three/examples/jsm/loaders/HDRLoader": "./libs/three/examples/jsm/loaders/HDRLoader.js",
+"@needle-tools/three-animation-pointer": "./libs/three-animation-pointer/dist/three-animation-pointer.js"
+}
+}
     </script>
     <script src="./libs/qrcode.min.js"></script>
     <script type="module" src="app.js"></script>
