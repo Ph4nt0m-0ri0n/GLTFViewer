@@ -1003,14 +1003,29 @@
           currentModel = gltf.scene;
           scene.add(currentModel);
 
-          // Setup animation mixer and UI
+          // Setup animation mixer
           mixer = new THREE.AnimationMixer(currentModel);
 
           // Clear previous animation dropdown options
           const dropdown = document.getElementById('animationOptionsDropdown');
           if (dropdown) dropdown.innerHTML = '';
 
-          // Populate animation dropdown
+          // Add hardcoded "No Animation" option FIRST
+          const noAnimOption = document.createElement('div');
+          noAnimOption.className = 'option';
+          noAnimOption.textContent = 'No Animation';
+          noAnimOption.style.fontWeight = 'bold'; // Make it stand out
+          noAnimOption.onclick = () => selectAnimation(null); // null = no animation
+          dropdown.appendChild(noAnimOption);
+
+          // Optional separator for visual clarity
+          const separator = document.createElement('div');
+          separator.style.height = '1px';
+          separator.style.background = 'rgba(255,255,255,0.2)';
+          separator.style.margin = '8px 0';
+          dropdown.appendChild(separator);
+
+          // Add real animations
           gltf.animations.forEach((clip) => {
               const name = clip.name || 'clip' + Object.keys(actions).length;
               actions[name] = mixer.clipAction(clip);
@@ -1022,11 +1037,11 @@
               dropdown.appendChild(option);
           });
 
-          // Reset animation controls UI
+          // Reset animation controls UI to "No Animation" by default
           activeAction = null;
           const trigger = document.getElementById('animationSelectTrigger');
           if (trigger) {
-              trigger.textContent = gltf.animations.length > 0 ? 'Select' : 'No Animation';
+              trigger.textContent = 'No Animation';
           }
 
           const timeline = document.getElementById('animationTimeline');
@@ -1036,10 +1051,10 @@
               timeline.disabled = true;
           }
 
-          // Clear any previous selection highlight in dropdown
-          document.querySelectorAll('#animationOptionsDropdown .option').forEach(opt => {
-              opt.classList.remove('selected');
-          });
+          // Ensure model is visible initially (when no animation selected)
+          if (currentModel) {
+              currentModel.visible = true;
+          }
 
           // Setup annotations (views, hotspots, etc.)
           setupAnnotations(currentModel);
@@ -1049,7 +1064,6 @@
           const center = box.getCenter(new THREE.Vector3());
           const size = box.getSize(new THREE.Vector3());
           const maxDim = Math.max(size.x, size.y, size.z);
-
           camera.position.set(center.x + maxDim, center.y + maxDim, center.z + maxDim);
           controls.target.copy(center);
           controls.update();
@@ -1060,23 +1074,58 @@
       });
   }
   function selectAnimation(name) {
-      // Stop and reset current action
+      // Stop and reset current action if any
       if (activeAction) {
           activeAction.stop();
           activeAction.reset();
           activeAction.paused = true;
+          activeAction = null;
       }
 
-      if (actions[name]) {
-          activeAction = actions[name];
+      // Reset timeline
+      const timeline = document.getElementById('animationTimeline');
+      if (timeline) {
+          timeline.value = 0;
+          timeline.disabled = true;
+      }
+
+      // Update trigger text
+      const trigger = document.getElementById('animationSelectTrigger');
+      if (trigger) {
+          trigger.textContent = name || 'No Animation';
+      }
+
+      // Handle "No Animation" case
+      if (name === null) {
+          // Show model again when no animation is selected
+          if (currentModel) {
+              currentModel.visible = true;
+          }
+          // Remove highlight from all options
+          document.querySelectorAll('#animationOptionsDropdown .option').forEach(opt => {
+              opt.classList.remove('selected');
+          });
+          // Close dropdown
+          const dropdown = document.getElementById('animationOptionsDropdown');
+          if (dropdown) {
+              dropdown.style.display = 'none';
+          }
+          return;
+      }
+
+      // Real animation selected
+      const action = actions[name];
+      if (action) {
+          activeAction = action;
 
           // Update timeline
-          const timeline = document.getElementById('animationTimeline');
-          const duration = activeAction.getClip().duration;
-          timeline.max = duration;
-          timeline.step = duration / 100 || 0.01;
-          timeline.value = 0;
-          timeline.disabled = false;
+          if (timeline) {
+              const duration = activeAction.getClip().duration;
+              timeline.max = duration;
+              timeline.step = duration / 100 || 0.01;
+              timeline.value = 0;
+              timeline.disabled = false;
+          }
 
           // VISUAL HIGHLIGHT: Add 'selected' class to clicked option
           document.querySelectorAll('#animationOptionsDropdown .option').forEach(opt => {
@@ -1087,8 +1136,7 @@
               }
           });
 
-          // UPDATE TRIGGER TEXT
-          const trigger = document.getElementById('animationSelectTrigger');
+          // UPDATE TRIGGER TEXT (again for safety)
           if (trigger) {
               trigger.textContent = name;
           }
@@ -1099,10 +1147,15 @@
               dropdown.style.display = 'none';
           }
 
-          // Play the animation (as you want on selection)
+          // Play the animation
           activeAction.reset();
           activeAction.paused = false;
           activeAction.play();
+
+          // Auto-hide model if name starts with "hide_" (case-insensitive)
+          if (currentModel && currentModel.name.toLowerCase().startsWith('hide_')) {
+              currentModel.visible = false;
+          }
       }
   }
   function playAnimation() {
