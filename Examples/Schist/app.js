@@ -89,6 +89,7 @@ function init() {
 
         clock = new THREE.Clock();
     }
+
 function updateGradient() {
     gradientCtx.clearRect(0, 0, 512, 512);
     if (gradientType === "solid") {
@@ -137,6 +138,7 @@ function clampCameraPitch() {
     euler.x = Math.max(-pitchLimit, Math.min(pitchLimit, euler.x));
     camera.quaternion.setFromEuler(euler);
 }
+
 function setupMaterialPanel() {
     const materialList = document.getElementById('materialList');
     if (!materialList) return;
@@ -252,6 +254,7 @@ function setupMaterialPanel() {
   };
   materialList.appendChild(restoreButton);
 }
+
 function applyMaterialToSelected(newMaterial) {
     if (!selectedObject || !selectedObject.isMesh) {
         alert('Please select a mesh first!');
@@ -266,6 +269,7 @@ function applyMaterialToSelected(newMaterial) {
     selectedObject.material = newMaterial.clone();
     selectedObject.material.needsUpdate = true;
 }
+
 function postInit() {
     updateGradient();
     updateColorInputs();
@@ -402,9 +406,9 @@ function postInit() {
             });
         }
     });
-    addListener('loadModelBtn', 'click', () => {
-        document.getElementById('fileInput').click();
-    });
+//    addListener('loadModelBtn', 'click', () => {
+//        document.getElementById('fileInput').click();
+//    });
 
     addListener('loadHdriBtn', 'click', () => {
         document.getElementById('hdriInput').click();
@@ -624,6 +628,7 @@ function postInit() {
             dropdown.style.display = 'none';
         }
     });
+    loadGLTFModel();
     animate();
     const canvas = renderer.domElement;
 
@@ -667,37 +672,7 @@ renderer.domElement.addEventListener('dragleave', (e) => {
     renderer.domElement.style.opacity = '1';
 });
 
-renderer.domElement.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    renderer.domElement.style.opacity = '1';
 
-    const file = e.dataTransfer.files[0];
-    if (file) {
-        if (file.name.toLowerCase().endsWith('.hdr')) {
-            const url = URL.createObjectURL(file);
-            new RGBELoader().load(url, (texture) => {
-                texture.mapping = THREE.EquirectangularReflectionMapping;
-
-                // Use PMREM for proper environment lighting (same as your hdriInput)
-                const pmremGenerator = new THREE.PMREMGenerator(renderer);
-                pmremGenerator.compileEquirectangularShader();
-                const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-
-                scene.environment = envMap;
-                // Optional: keep your gradient background or replace it
-                // scene.background = envMap;  // Uncomment if you want HDRI as background too
-                scene.background = new THREE.CanvasTexture(gradientCanvas); // Keeps your custom gradient
-
-                pmremGenerator.dispose();
-                texture.dispose();
-
-                URL.revokeObjectURL(url); // Clean up
-            });
-        }
-        // Your existing model drag & drop can stay separate or merged
-    }
-});
 addListener('arButton', 'click', async () => {
         if (!currentModel) {
             alert('Load a model first!');
@@ -988,11 +963,21 @@ function updateHaloEffects(delta) {
     });
 }
 
-function loadGLTFModel(url) {
+function loadGLTFModel() {
     const loader = new GLTFLoader();
     loader.register((parser) => new GLTFAnimationPointerExtension(parser));
 
-    loader.load(url, function (gltf) {
+    // Hardcoded paths - CHANGE THESE TO YOUR ACTUAL FILES
+    const modelPath = './Model/Schist.glb';        // ← Your GLTF/GLB file
+    const hdriPath  = './HDRI/abandoned_games.hdr';         // ← Your HDRI file (change as needed)
+
+    console.log('Loading GLTF from:', modelPath);
+    console.log('Loading HDRI from:', hdriPath);
+
+    // Load GLTF model
+    loader.load(modelPath, function (gltf) {
+        console.log('GLTF model loaded successfully!');
+
         // Remove old model if exists
         if (currentModel) {
             scene.remove(currentModel);
@@ -1003,23 +988,22 @@ function loadGLTFModel(url) {
         currentModel = gltf.scene;
         scene.add(currentModel);
 
-        // Scan model for all meshes starting with "hide_" (case-insensitive)
-        hideableParts = []; // Reset the array
+        // Scan for hide_ parts
+        hideableParts = [];
         currentModel.traverse((node) => {
             if (node.isMesh && node.name.toLowerCase().startsWith('hide_')) {
                 hideableParts.push(node);
-                node.visible = true; // Ensure they start visible
+                node.visible = true;
             }
         });
 
-        // Setup mixer
+        // Setup mixer and animation UI
         mixer = new THREE.AnimationMixer(currentModel);
 
-        // Clear and populate animation dropdown
         const dropdown = document.getElementById('animationOptionsDropdown');
         if (dropdown) dropdown.innerHTML = '';
 
-        // Hardcoded "No Animation" option FIRST
+        // "No Animation" option first
         const noAnimOption = document.createElement('div');
         noAnimOption.className = 'option';
         noAnimOption.textContent = 'No Animation';
@@ -1027,14 +1011,12 @@ function loadGLTFModel(url) {
         noAnimOption.onclick = () => selectAnimation(null);
         dropdown.appendChild(noAnimOption);
 
-        // Separator
         const separator = document.createElement('div');
         separator.style.height = '1px';
         separator.style.background = 'rgba(255,255,255,0.2)';
         separator.style.margin = '8px 0';
         dropdown.appendChild(separator);
 
-        // Real animations
         gltf.animations.forEach((clip) => {
             const name = clip.name || 'clip' + Object.keys(actions).length;
             actions[name] = mixer.clipAction(clip);
@@ -1046,7 +1028,6 @@ function loadGLTFModel(url) {
             dropdown.appendChild(option);
         });
 
-        // Reset UI to "No Animation"
         activeAction = null;
         const trigger = document.getElementById('animationSelectTrigger');
         if (trigger) trigger.textContent = 'No Animation';
@@ -1058,7 +1039,6 @@ function loadGLTFModel(url) {
             timeline.disabled = true;
         }
 
-        // Ensure everything starts visible
         if (currentModel) {
             currentModel.visible = true;
             hideableParts.forEach(part => part.visible = true);
@@ -1074,11 +1054,38 @@ function loadGLTFModel(url) {
         controls.target.copy(center);
         controls.update();
     },
-    undefined,
+    function (progress) {
+        console.log('GLTF loading progress:', Math.round((progress.loaded / progress.total) * 100) + '%');
+    },
     function (error) {
-        console.error('Failed to load GLTF model:', error);
+        console.error('Failed to load GLTF from path:', error);
+    });
+
+    // Load HDRI environment (after GLTF, but can be parallel if preferred)
+    const hdriLoader = new RGBELoader();
+    hdriLoader.load(hdriPath, function (texture) {
+        console.log('HDRI loaded successfully!');
+
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+        const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+
+        scene.environment = envMap;
+        // scene.background = envMap; // Optional: use HDRI as background too
+        scene.background = new THREE.CanvasTexture(gradientCanvas); // Keep your gradient
+
+        pmremGenerator.dispose();
+        texture.dispose();
+    },
+    function (progress) {
+        console.log('HDRI loading progress:', Math.round((progress.loaded / progress.total) * 100) + '%');
+    },
+    function (error) {
+        console.error('Failed to load HDRI from path:', error);
     });
 }
+
 function selectAnimation(name) {
     // Stop current animation
     if (activeAction) {

@@ -34,7 +34,7 @@ input[type="file"] {
     left: 20px;
     padding: 10px 10px 10px 10px;
     border:1px solid rgba(255, 255, 255, 0.2);
-    display: grid;
+    display: none;
     gap: 5px;
     border-radius: 15px;
     z-index: 100;
@@ -80,7 +80,7 @@ input[type="file"] {
 /* Mesh controls Div Start */
 .meshcontainer {
     position: fixed;
-    bottom: 200px;
+    bottom: 30px;
     left: 20px;
     width: 217px;
     background: rgba(0, 0, 0, 0.3);
@@ -501,7 +501,7 @@ input[type="file"] {
 /* Views Div Start */
 .viewsContainer {
     position: fixed;
-    bottom: 400px;
+    bottom: 225px;
     left: 20px;
     width: 217px;
     background: rgba(0, 0, 0, 0.3);
