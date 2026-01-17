@@ -993,6 +993,7 @@ function loadGLTFModel(url) {
     loader.register((parser) => new GLTFAnimationPointerExtension(parser));
 
     loader.load(url, function (gltf) {
+        // Remove old model if exists
         if (currentModel) {
             scene.remove(currentModel);
             if (mixer) mixer.stopAllAction();
@@ -1002,18 +1003,19 @@ function loadGLTFModel(url) {
         currentModel = gltf.scene;
         scene.add(currentModel);
 
-        // Scan and collect all parts that start with "hide_" (case-insensitive)
-        hideableParts = []; // Global array to store parts we want to hide/show
+        // Scan model for all meshes starting with "hide_" (case-insensitive)
+        hideableParts = []; // Reset the array
         currentModel.traverse((node) => {
             if (node.isMesh && node.name.toLowerCase().startsWith('hide_')) {
                 hideableParts.push(node);
-                node.visible = true; // Make sure they start visible
+                node.visible = true; // Ensure they start visible
             }
         });
 
-        // Setup mixer and UI
+        // Setup mixer
         mixer = new THREE.AnimationMixer(currentModel);
 
+        // Clear and populate animation dropdown
         const dropdown = document.getElementById('animationOptionsDropdown');
         if (dropdown) dropdown.innerHTML = '';
 
@@ -1025,7 +1027,7 @@ function loadGLTFModel(url) {
         noAnimOption.onclick = () => selectAnimation(null);
         dropdown.appendChild(noAnimOption);
 
-        // Separator (optional)
+        // Separator
         const separator = document.createElement('div');
         separator.style.height = '1px';
         separator.style.background = 'rgba(255,255,255,0.2)';
@@ -1044,7 +1046,7 @@ function loadGLTFModel(url) {
             dropdown.appendChild(option);
         });
 
-        // Reset UI to "No Animation" by default
+        // Reset UI to "No Animation"
         activeAction = null;
         const trigger = document.getElementById('animationSelectTrigger');
         if (trigger) trigger.textContent = 'No Animation';
@@ -1054,6 +1056,12 @@ function loadGLTFModel(url) {
             timeline.max = 1;
             timeline.value = 0;
             timeline.disabled = true;
+        }
+
+        // Ensure everything starts visible
+        if (currentModel) {
+            currentModel.visible = true;
+            hideableParts.forEach(part => part.visible = true);
         }
 
         setupAnnotations(currentModel);
@@ -1072,7 +1080,7 @@ function loadGLTFModel(url) {
     });
 }
 function selectAnimation(name) {
-    // Stop current animation if playing
+    // Stop current animation
     if (activeAction) {
         activeAction.stop();
         activeAction.reset();
@@ -1093,9 +1101,8 @@ function selectAnimation(name) {
         trigger.textContent = name || 'No Animation';
     }
 
-    // Handle "No Animation" selection
     if (name === null) {
-        // Show all hide_ parts again
+        // "No Animation" → show all hide_ parts again
         hideableParts.forEach(part => {
             part.visible = true;
         });
@@ -1140,17 +1147,18 @@ function selectAnimation(name) {
             dropdown.style.display = 'none';
         }
 
-        // Play the animation
+        // Play animation
         activeAction.reset();
         activeAction.paused = false;
         activeAction.play();
 
-        // Hide all "hide_" parts when real animation starts
+        // Hide all "hide_" parts
         hideableParts.forEach(part => {
             part.visible = false;
         });
     }
 }
+
 function playAnimation() {
     if (activeAction) {
         activeAction.paused = false;
