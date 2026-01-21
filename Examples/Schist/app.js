@@ -974,7 +974,7 @@ function loadGLTFModel() {
     loader.register((parser) => new GLTFAnimationPointerExtension(parser));
 
     // Hardcoded paths
-    const modelPath = 'https://drive.google.com/uc?export=download&id=1Cbk8i9feuuo66ljfwmXkCGfapnTa-H4y';
+    const modelPath = 'https://www.dropbox.com/scl/fi/h6bmjiwvf66i8eakecs2j/Schist.glb?rlkey=ufd5nwoawgxdooyo3x405buht&st=2n9lbqnk&dl=1';
     const hdriPath = './HDRI/abandoned_games.hdr';
 
     console.log('Starting GLTF load from:', modelPath);
