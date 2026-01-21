@@ -4,6 +4,7 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 import { GLTFAnimationPointerExtension } from '@needle-tools/three-animation-pointer';
+import { DRACOLoader } from 'three/examples/jsm/libs/draco/DRACOLoader';
 fetch('ui.html')
     .then(response => response.text())
     .then(html => {
@@ -628,7 +629,6 @@ function postInit() {
             dropdown.style.display = 'none';
         }
     });
-    loadGLTFModel();
     animate();
     const canvas = renderer.domElement;
 
@@ -751,7 +751,7 @@ addListener('arButton', 'click', async () => {
     });
 
     // Your other postInit listeners (visibility, xray, etc.) — keep them as is
-
+    loadGLTFModel();
     animate();
     addListener('screenshotButton', 'click', () => {
         const TARGET_WIDTH = 1920;
@@ -965,30 +965,30 @@ function updateHaloEffects(delta) {
 
 function loadGLTFModel() {
     const loader = new GLTFLoader();
+
+    // Draco support – use global DRACOLoader (after script load in index.html)
+    const dracoLoader = new DRACOLoader();  // ← Fixed: use global
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/draco/');
+    loader.setDRACOLoader(dracoLoader);
+
     loader.register((parser) => new GLTFAnimationPointerExtension(parser));
 
-    // Hardcoded paths - CHANGE THESE TO YOUR ACTUAL FILES
-    const modelPath = './Model/Schist.glb';        // ← Your GLTF/GLB file
-    const hdriPath  = './HDRI/abandoned_games.hdr';         // ← Your HDRI file (change as needed)
+    // Hardcoded paths
+    const modelPath = 'https://drive.google.com/uc?export=download&id=1Cbk8i9feuuo66ljfwmXkCGfapnTa-H4y';
+    const hdriPath = './HDRI/abandoned_games.hdr';
 
-    console.log('Loading GLTF from:', modelPath);
-    console.log('Loading HDRI from:', hdriPath);
+    console.log('Starting GLTF load from:', modelPath);
+    console.log('Starting HDRI load from:', hdriPath);
 
-    // Load GLTF model
     loader.load(modelPath, function (gltf) {
         console.log('GLTF model loaded successfully!');
-
-        // Remove old model if exists
         if (currentModel) {
             scene.remove(currentModel);
             if (mixer) mixer.stopAllAction();
             actions = {};
         }
-
         currentModel = gltf.scene;
         scene.add(currentModel);
-
-        // Scan for hide_ parts
         hideableParts = [];
         currentModel.traverse((node) => {
             if (node.isMesh && node.name.toLowerCase().startsWith('hide_')) {
@@ -996,56 +996,43 @@ function loadGLTFModel() {
                 node.visible = true;
             }
         });
-
-        // Setup mixer and animation UI
         mixer = new THREE.AnimationMixer(currentModel);
-
         const dropdown = document.getElementById('animationOptionsDropdown');
         if (dropdown) dropdown.innerHTML = '';
-
-        // "No Animation" option first
         const noAnimOption = document.createElement('div');
         noAnimOption.className = 'option';
         noAnimOption.textContent = 'No Animation';
         noAnimOption.style.fontWeight = 'bold';
         noAnimOption.onclick = () => selectAnimation(null);
         dropdown.appendChild(noAnimOption);
-
         const separator = document.createElement('div');
         separator.style.height = '1px';
         separator.style.background = 'rgba(255,255,255,0.2)';
         separator.style.margin = '8px 0';
         dropdown.appendChild(separator);
-
         gltf.animations.forEach((clip) => {
             const name = clip.name || 'clip' + Object.keys(actions).length;
             actions[name] = mixer.clipAction(clip);
-
             const option = document.createElement('div');
             option.className = 'option';
             option.textContent = name;
             option.addEventListener('click', () => selectAnimation(name));
             dropdown.appendChild(option);
         });
-
         activeAction = null;
         const trigger = document.getElementById('animationSelectTrigger');
         if (trigger) trigger.textContent = 'No Animation';
-
         const timeline = document.getElementById('animationTimeline');
         if (timeline) {
             timeline.max = 1;
             timeline.value = 0;
             timeline.disabled = true;
         }
-
         if (currentModel) {
             currentModel.visible = true;
             hideableParts.forEach(part => part.visible = true);
         }
-
         setupAnnotations(currentModel);
-
         const box = new THREE.Box3().setFromObject(currentModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
@@ -1055,34 +1042,29 @@ function loadGLTFModel() {
         controls.update();
     },
     function (progress) {
-        console.log('GLTF loading progress:', Math.round((progress.loaded / progress.total) * 100) + '%');
+        console.log('GLTF progress:', Math.round((progress.loaded / progress.total) * 100) + '%');
     },
     function (error) {
-        console.error('Failed to load GLTF from path:', error);
+        console.error('GLTF load failed:', error);
     });
 
-    // Load HDRI environment (after GLTF, but can be parallel if preferred)
     const hdriLoader = new RGBELoader();
     hdriLoader.load(hdriPath, function (texture) {
         console.log('HDRI loaded successfully!');
-
         texture.mapping = THREE.EquirectangularReflectionMapping;
         const pmremGenerator = new THREE.PMREMGenerator(renderer);
         pmremGenerator.compileEquirectangularShader();
         const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-
         scene.environment = envMap;
-        // scene.background = envMap; // Optional: use HDRI as background too
-        scene.background = new THREE.CanvasTexture(gradientCanvas); // Keep your gradient
-
+        scene.background = new THREE.CanvasTexture(gradientCanvas);
         pmremGenerator.dispose();
         texture.dispose();
     },
     function (progress) {
-        console.log('HDRI loading progress:', Math.round((progress.loaded / progress.total) * 100) + '%');
+        console.log('HDRI progress:', Math.round((progress.loaded / progress.total) * 100) + '%');
     },
     function (error) {
-        console.error('Failed to load HDRI from path:', error);
+        console.error('HDRI load failed:', error);
     });
 }
 
