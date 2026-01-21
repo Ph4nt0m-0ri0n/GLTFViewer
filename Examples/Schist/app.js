@@ -4,7 +4,6 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 import { GLTFAnimationPointerExtension } from '@needle-tools/three-animation-pointer';
-import { DRACOLoader } from 'three/examples/jsm/libs/draco/DRACOLoader';
 fetch('ui.html')
     .then(response => response.text())
     .then(html => {
@@ -965,14 +964,6 @@ function updateHaloEffects(delta) {
 
 function loadGLTFModel() {
     const loader = new GLTFLoader();
-
-    // Draco support – use global DRACOLoader (after script load in index.html)
-    const dracoLoader = new DRACOLoader();  // ← Fixed: use global
-    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/libs/draco/');
-    loader.setDRACOLoader(dracoLoader);
-
-    loader.register((parser) => new GLTFAnimationPointerExtension(parser));
-
     // Hardcoded paths
     const modelPath = './Model/Schist.glb';
     const hdriPath = './HDRI/abandoned_games.hdr';
