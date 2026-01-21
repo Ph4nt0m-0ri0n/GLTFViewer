@@ -965,7 +965,7 @@ function updateHaloEffects(delta) {
 function loadGLTFModel() {
     const loader = new GLTFLoader();
     // Hardcoded paths
-    const modelPath = 'https://raw.githubusercontent.com/Ph4nt0m-0ri0n/GLTFViewer/main/Examples/Schist/Model/Schist.glb';
+    const modelPath = 'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/GLTFViewer/main/Examples/Schist/Model/Schist.glb';
     const hdriPath = './HDRI/abandoned_games.hdr';
 
     console.log('Starting GLTF load from:', modelPath);
