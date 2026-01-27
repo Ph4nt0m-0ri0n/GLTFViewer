@@ -965,7 +965,7 @@ function updateHaloEffects(delta) {
 function loadGLTFModel() {
     const loader = new GLTFLoader();
     // Hardcoded paths
-    const modelPath = 'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/GLTFViewer/main/Examples/Schist/Model/Schist.glb';
+    const modelPath = './Model/Schist.glb'//'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/GLTFViewer/main/Examples/Schist/Model/Schist.glb';
     const hdriPath = './HDRI/abandoned_games.hdr';
 
     console.log('Starting GLTF load from:', modelPath);
@@ -1299,11 +1299,11 @@ function handleHotspot(x, y) {
 
                 if (isLocalVideo) {
                     if (targetObject.name === "hs_vid_local_1") {
-                        targetObject.userData.videoURL = "videos/VFDisassembly.mp4";
+                        targetObject.userData.videoURL = "videos/Centrifuging.mp4";
                     } else if (targetObject.name === "hs_vid_local_2") {
-                        targetObject.userData.videoURL = "videos/VFFilterWorking.mp4";
+                        targetObject.userData.videoURL = "videos/Intro.mp4";
                     } else if (targetObject.name === "hs_vid_local_3") {
-                        targetObject.userData.videoURL = "videos/VFIntroduction.mp4";
+                        targetObject.userData.videoURL = "videos/Delumping.mp4";
                     } else {
                         targetObject.userData.videoURL = "videos/fallback.mp4";
                     }
