@@ -973,13 +973,18 @@ function loadGLTFModel() {
 
     loader.load(modelPath, function (gltf) {
         console.log('GLTF model loaded successfully!');
+
+        // Remove old model if exists
         if (currentModel) {
             scene.remove(currentModel);
             if (mixer) mixer.stopAllAction();
             actions = {};
         }
+
         currentModel = gltf.scene;
         scene.add(currentModel);
+
+        // Scan for hide_ parts
         hideableParts = [];
         currentModel.traverse((node) => {
             if (node.isMesh && node.name.toLowerCase().startsWith('hide_')) {
@@ -987,43 +992,66 @@ function loadGLTFModel() {
                 node.visible = true;
             }
         });
+
+        // === FIX 1: Apply halo effect to ALL meshes in the loaded model ===
+        currentModel.traverse((node) => {
+            if (node.isMesh) {
+                setupHaloEffect(node);
+                // Make sure the halo group is visible
+                if (haloGroups.has(node)) {
+                    haloGroups.get(node).visible = true;
+                }
+                console.log(`Halo setup for mesh: ${node.name || '[unnamed]'}`);
+            }
+        });
+
+        // Setup mixer and animation UI
         mixer = new THREE.AnimationMixer(currentModel);
         const dropdown = document.getElementById('animationOptionsDropdown');
         if (dropdown) dropdown.innerHTML = '';
+
         const noAnimOption = document.createElement('div');
         noAnimOption.className = 'option';
         noAnimOption.textContent = 'No Animation';
         noAnimOption.style.fontWeight = 'bold';
         noAnimOption.onclick = () => selectAnimation(null);
         dropdown.appendChild(noAnimOption);
+
         const separator = document.createElement('div');
         separator.style.height = '1px';
         separator.style.background = 'rgba(255,255,255,0.2)';
         separator.style.margin = '8px 0';
         dropdown.appendChild(separator);
+
         gltf.animations.forEach((clip) => {
             const name = clip.name || 'clip' + Object.keys(actions).length;
             actions[name] = mixer.clipAction(clip);
+
             const option = document.createElement('div');
             option.className = 'option';
             option.textContent = name;
             option.addEventListener('click', () => selectAnimation(name));
             dropdown.appendChild(option);
         });
+
         activeAction = null;
         const trigger = document.getElementById('animationSelectTrigger');
         if (trigger) trigger.textContent = 'No Animation';
+
         const timeline = document.getElementById('animationTimeline');
         if (timeline) {
             timeline.max = 1;
             timeline.value = 0;
             timeline.disabled = true;
         }
+
         if (currentModel) {
             currentModel.visible = true;
             hideableParts.forEach(part => part.visible = true);
         }
+
         setupAnnotations(currentModel);
+
         const box = new THREE.Box3().setFromObject(currentModel);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
@@ -1039,6 +1067,7 @@ function loadGLTFModel() {
         console.error('GLTF load failed:', error);
     });
 
+    // HDRI loading (unchanged)
     const hdriLoader = new RGBELoader();
     hdriLoader.load(hdriPath, function (texture) {
         console.log('HDRI loaded successfully!');
