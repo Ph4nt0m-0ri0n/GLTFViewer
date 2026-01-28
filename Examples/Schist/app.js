@@ -1304,7 +1304,14 @@ function handleHotspot(x, y) {
                         targetObject.userData.videoURL = "videos/Intro.mp4";
                     } else if (targetObject.name === "hs_vid_local_3") {
                         targetObject.userData.videoURL = "videos/Delumping.mp4";
-                    } else {
+                    }
+                    else if (targetObject.name === "hs_vid_local_4") {
+                        targetObject.userData.videoURL = "videos/Packing.mp4";
+                    }
+                    else if (targetObject.name === "hs_vid_local_5") {
+                        targetObject.userData.videoURL = "videos/Milling.mp4";
+                    }
+                     else {
                         targetObject.userData.videoURL = "videos/fallback.mp4";
                     }
                     videoContainer.innerHTML = `
