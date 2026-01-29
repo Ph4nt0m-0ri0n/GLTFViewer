@@ -966,7 +966,7 @@ function loadGLTFModel() {
     const loader = new GLTFLoader();
     // Hardcoded paths
     const modelPath = 'https://media.githubusercontent.com/media/Ph4nt0m-0ri0n/GLTFViewer/main/Examples/Schist/Model/Schist.glb';
-    const hdriPath = './HDRI/abandoned_games.hdr';
+    const hdriPath = './HDRI/photo_studio_01_4k.hdr';
 
     console.log('Starting GLTF load from:', modelPath);
     console.log('Starting HDRI load from:', hdriPath);
@@ -987,6 +987,17 @@ function loadGLTFModel() {
                 node.visible = true;
             }
         });
+        currentModel.traverse((node) => {
+    if (node.isMesh) {
+        const name = (node.name || '').toLowerCase();
+        if (name.includes('hs_txt') || name.includes('hs_img') || name.includes('hs_vid')) {
+            setupHaloEffect(node);
+            if (haloGroups.has(node)) {
+                haloGroups.get(node).visible = true;
+            }
+        }
+    }
+});
         mixer = new THREE.AnimationMixer(currentModel);
         const dropdown = document.getElementById('animationOptionsDropdown');
         if (dropdown) dropdown.innerHTML = '';
